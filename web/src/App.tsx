@@ -31,6 +31,15 @@ import type {
 import { blankState } from "./types";
 import Chart from "./Chart";
 
+function stockFromHash() {
+  try {
+    const value = decodeURIComponent(location.hash.slice(1));
+    return /^[A-Z0-9][A-Z0-9.-]{0,24}$/.test(value) ? value : null;
+  } catch {
+    return null;
+  }
+}
+
 const number = (v: number | null | undefined, d = 2) =>
   v == null
     ? "—"
@@ -109,6 +118,8 @@ function Modal({
 
 function Login() {
   const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [method, setMethod] = useState<"password" | "link">("password");
   const [message, setMessage] = useState("");
   const [busy, setBusy] = useState(false);
   return (
@@ -129,33 +140,77 @@ function Login() {
             onSubmit={async (e) => {
               e.preventDefault();
               setBusy(true);
-              const { error } = await api.supabase!.auth.signInWithOtp({
-                email,
-                options: {
-                  shouldCreateUser: false,
-                  emailRedirectTo:
-                    window.location.origin + window.location.pathname,
-                },
-              });
-              setMessage(
-                error ? error.message : "登录链接已发送，请查收邮箱。",
-              );
-              setBusy(false);
+              setMessage("");
+              try {
+                const { error } =
+                  method === "password"
+                    ? await api.supabase!.auth.signInWithPassword({
+                        email,
+                        password,
+                      })
+                    : await api.supabase!.auth.signInWithOtp({
+                        email,
+                        options: {
+                          shouldCreateUser: false,
+                          emailRedirectTo:
+                            window.location.origin + window.location.pathname,
+                        },
+                      });
+                setMessage(
+                  error
+                    ? error.message
+                    : method === "link"
+                      ? "登录链接已发送，请查收邮箱。"
+                      : "",
+                );
+              } catch {
+                setMessage("暂时无法连接登录服务，请稍后重试。");
+              } finally {
+                setBusy(false);
+              }
             }}
           >
             <label>
               登录邮箱
               <input
                 type="email"
+                autoComplete="username"
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="you@example.com"
               />
             </label>
+            {method === "password" && (
+              <label>
+                登录密码
+                <input
+                  type="password"
+                  autoComplete="current-password"
+                  required
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                />
+              </label>
+            )}
             <button className="primary" disabled={busy}>
-              {busy ? "正在发送…" : "发送登录链接"}
+              {busy
+                ? "正在连接…"
+                : method === "password"
+                  ? "登录观察台"
+                  : "发送登录链接"}
               <ArrowRight size={16} />
+            </button>
+            <button
+              type="button"
+              className="text-link"
+              disabled={busy}
+              onClick={() => {
+                setMethod(method === "password" ? "link" : "password");
+                setMessage("");
+              }}
+            >
+              {method === "password" ? "使用邮箱链接登录" : "使用密码登录"}
             </button>
             <p className="muted">仅已开通的个人账户可以访问行情与记录。</p>
           </form>
@@ -191,9 +246,7 @@ function Login() {
 export default function App() {
   const [authenticated, setAuthenticated] = useState(api.local);
   const [data, setData] = useState<Bootstrap | null>(null);
-  const [selected, setSelected] = useState(
-    decodeURIComponent(location.hash.slice(1)) || "MSFT",
-  );
+  const [selected, setSelected] = useState(() => stockFromHash() || "MSFT");
   const [detail, setDetail] = useState<Detail | null>(null);
   const [loadError, setLoadError] = useState("");
   const [toast, setToast] = useState("");
@@ -258,7 +311,7 @@ export default function App() {
   }, [selected, data?.stocks, authenticated]);
   useEffect(() => {
     const listener = () => {
-      const s = decodeURIComponent(location.hash.slice(1));
+      const s = stockFromHash();
       if (s) setSelected(s);
     };
     window.addEventListener("hashchange", listener);
