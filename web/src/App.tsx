@@ -271,7 +271,13 @@ export default function App() {
       .getSession()
       .then(({ data }) => setAuthenticated(!!data.session));
     const { data: sub } = api.supabase.auth.onAuthStateChange(
-      (_event, session) => setAuthenticated(!!session),
+      (_event, session) => {
+        setAuthenticated(!!session);
+        if (!session) {
+          setData(null);
+          setDetail(null);
+        }
+      },
     );
     return () => sub.subscription.unsubscribe();
   }, []);
