@@ -3,6 +3,7 @@ export type Stock = {
   previous_symbol?: string | null;
   name: string;
   market: "HK" | "US";
+  asset_type?: "stock" | "etf";
   sector: string;
   currency: string;
   close: number | null;

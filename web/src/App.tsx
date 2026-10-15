@@ -252,7 +252,7 @@ export default function App() {
   const [toast, setToast] = useState("");
   const [saving, setSaving] = useState(false);
   const [query, setQuery] = useState("");
-  const [market, setMarket] = useState("all");
+  const [market, setMarket] = useState("US");
   const [filter, setFilter] = useState("all");
   const [view, setView] = useState("desk");
   const [period, setPeriod] = useState<"daily" | "weekly" | "monthly">("daily");
@@ -357,7 +357,7 @@ export default function App() {
   const filtered = data.stocks.filter((s) => {
     const st = data.states[s.symbol] || blankState;
     const status = currentStatus(s, st);
-    if (market !== "all" && s.market !== market) return false;
+    if (market === "ETF" ? s.asset_type !== "etf" : s.asset_type === "etf" || s.market !== market) return false;
     if (
       query &&
       !`${s.symbol} ${s.previous_symbol || ""} ${s.name} ${s.sector}`
@@ -518,7 +518,7 @@ export default function App() {
           {marketDate("US")}
         </span>
         <span>
-          {data.stocks.length} 只股票 <span className="sep">/</span>{" "}
+          {data.stocks.filter((s) => s.asset_type !== "etf").length} 只股票 · {data.stocks.filter((s) => s.asset_type === "etf").length} 只 ETF <span className="sep">/</span>{" "}
           <b>{newCount}</b> 个最新信号 <span className="sep">/</span>{" "}
           <b>{dueCount}</b> 项待判断
         </span>
@@ -569,7 +569,7 @@ export default function App() {
                         <strong>{s.symbol}</strong>
                         <small>{s.name}</small>
                       </td>
-                      <td>{s.market === "HK" ? "港股" : "美股"}</td>
+                      <td>{s.market === "HK" ? "港股" : "美股"}{s.asset_type === "etf" ? " ETF" : ""}</td>
                       <td>{s.last_date || "—"}</td>
                       <td>{s.expected_date}</td>
                       <td>{s.repair_count}</td>
@@ -601,16 +601,16 @@ export default function App() {
                 ref={search}
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
-                placeholder="搜索股票、代码或行业"
+                placeholder="搜索股票、ETF 或行业"
                 aria-label="搜索股票"
               />
               <kbd>/</kbd>
             </div>
             <div className="market-tabs">
               {[
-                ["all", "全部市场"],
                 ["US", "美股"],
                 ["HK", "港股"],
+                ["ETF", "ETF"],
               ].map(([v, label]) => (
                 <button
                   key={v}
@@ -720,7 +720,7 @@ export default function App() {
                 <div className="stock-heading">
                   <div>
                     <div className="eyebrow">
-                      {stock.market === "HK" ? "香港市场" : "美国市场"}
+                      {stock.market === "HK" ? "香港市场" : "美国市场"}{stock.asset_type === "etf" ? " · ETF" : ""}
                       <span>/</span>
                       {stock.sector}
                     </div>
