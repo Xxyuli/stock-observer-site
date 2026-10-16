@@ -681,7 +681,7 @@ export default function App() {
                         {s.market === "HK" ? "HK" : "US"}
                         {["stale", "pending", "unavailable"].includes(
                           s.quality,
-                        ) && " · 数据待更新"}
+                        ) && ` · ${statusNames[s.quality]}`}
                       </span>
                     </div>
                   </button>
@@ -805,8 +805,13 @@ export default function App() {
                 ) && (
                   <div className="data-warning">
                     <Clock3 size={14} />
-                    {statusNames[stock.quality]}。当前计数截至{" "}
-                    {stock.last_date || "—"}，应更新至 {stock.expected_date}。
+                    {statusNames[stock.quality]}。行情记录截至 {stock.last_date || "—"}。
+                    {stock.quality === "stale"
+                      ? ` 应更新至 ${stock.expected_date}。`
+                      : stock.quality === "pending"
+                        ? " 存在日线缺口或字段异常，暂不确认观察计数。"
+                        : " 等待有效行情。"}
+                    {detail && ` 最近可用日 K：${detail.daily.filter((b) => b.valid).at(-1)?.time || "—"}。`}
                   </div>
                 )}
                 {detail?.daily.some((b) => b.valid) ? (
@@ -897,7 +902,7 @@ export default function App() {
                   <span>当前观察</span>
                   <span className="confirmed">
                     <i />
-                    {isFresh(stock) ? "盘后已确认" : "待更新 / 核验"}
+                    {isFresh(stock) ? "盘后已确认" : statusNames[stock.quality] || "待核验"}
                   </span>
                 </div>
                 <div className="day-display">
